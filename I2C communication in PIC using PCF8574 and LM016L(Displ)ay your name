@@ -1,0 +1,98 @@
+//Coded on keiluVision4 and compiled using Hi-tec C compliler
+
+#include <pic.h> //general header file for PIC16F877A
+#define RS 0x01   
+#define E  0x02  
+
+
+void delay(){     //General Delay function 
+int i;
+for(i=0;i<500;i++)
+{}
+}
+
+void Start() {    //function to start the I2C communication
+    SEN = 1;
+    while (SSPIF == 0);
+    SSPIF = 0;
+}
+
+void Stop() {    //function to stopthe I2C communication
+    PEN = 1;
+    while (SSPIF == 0);
+    SSPIF = 0;
+}
+
+void Write(unsigned char data) {   //function to write the data
+    SSPBUF = data;
+    while (SSPIF == 0);
+    SSPIF = 0;
+}
+
+void master(unsigned char data) {  // Writing operation by the master PIC to the PCF8574
+    Start();
+    Write(0x40);  //0x40=0b00100000 0010 is slave address while 0000 is the analog pins of PCF8574 grounded. 
+    Write(data);
+    Stop();
+    delay();
+}
+
+void lcd_cmd(unsigned char a) {  //Function for giving LCD Commands 
+    unsigned char temp;
+
+    //Lower nibble
+    temp = a & 0xF0;
+    master(temp);
+    master(temp|E); //Enable=1
+    master(temp);   //Enable=0
+
+  //Upper nibble
+    temp = (a << 4) & 0xF0;
+    master(temp);
+    master(temp|E);  //Enable==1
+    master(temp);    //Enable==0
+
+    delay();
+}
+
+void lcd_data(unsigned char b) {    //Function for giving LCD Data
+    unsigned char temp;
+
+ 
+    temp =(b & 0xF0)|RS;
+    master(temp);
+    master(temp|E);
+    master(temp);
+
+   
+    temp=((b << 4)&0xF0)|RS;
+    master(temp);
+    master(temp|E);
+    master(temp);
+
+    delay();
+}
+
+
+
+void main() {
+    TRISC3 = 1;  //SCK
+    TRISC4 = 1; //SDA
+
+	SSPCON = 0x28;   //Master mode 
+    SSPADD = 9;   //_XTAL_FREQ/4)/100000) - 1  Here 100khz.
+    SSPSTAT = 0x00;
+     
+    //LCD Initialisation
+    lcd_cmd(0x28);  
+    lcd_cmd(0x0C); 
+    lcd_cmd(0x06); 
+    lcd_cmd(0x01); 
+
+    lcd_data('N');
+    lcd_data('A');
+    lcd_data('M');
+	  lcd_data('E');
+
+   
+}
